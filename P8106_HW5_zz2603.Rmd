@@ -1,0 +1,32 @@
+---
+title: "Homework 5"
+author: "Ziyi Zhao"
+date: "5/9/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ISLR)
+
+
+```
+
+
+
+```{r }
+
+
+
+
+
+```
+
+
+
+```{r }
+
+```
+
+
