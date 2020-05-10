@@ -9,24 +9,127 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(ISLR)
+library(caret)
+library(tidyverse)
+library(e1071)
+
+```
+
+# Import data OJ
+
+```{r include=FALSE}
+data("OJ")
+jojo <- OJ %>% janitor::clean_names()
+
+jojo$purchase <- factor(jojo$purchase,c("CH","MM"))
+
+
+jo_train <- createDataPartition(y=jojo$purchase,
+                                p=799/1070,
+                                list=FALSE)
+
+ctrl <- trainControl(method = "cv")
+
+```
+
+# linear boundary
+
+```{r linear, echo=FALSE}
+set.seed(1)
+linear_tune <- tune.svm(purchase~.,
+                        data=jojo[jo_train,],
+                        kernel="linear",
+                        cost=exp(seq(-2,5,len=50)))
+summary(linear_tune)
+
+best_linear <- linear_tune$best.model
+summary(best_linear)
+
+pred_linear <- predict(best_linear,newdata = jojo[-jo_train,])
+
+confusionMatrix(data=pred_linear,
+                reference = jojo$purchase[-jo_train])
+
+```
+
+The training error rate using linear boundary is 0.18375.
+
+The test error rate is 0.1407.
+
+# radical kernel
+
+```{r radical,echo=FALSE}
+set.seed(1)
+radical_tune <- tune.svm(purchase~.,
+                         data = jojo[jo_train,],
+                         cost=exp(seq(-5,2,len=10)),
+                         gamma=exp(seq(-7,-2,len=5)))
+
+summary(radical_tune)
+
+best_radical <- radical_tune$best.model
+summary(best_radical)
+
+pred_radial <- predict(best_radical,newdata = jojo[-jo_train,])
+
+confusionMatrix(data = pred_radial,
+                reference = jojo$purchase[-jo_train])
+
+```
+
+The training error rate using radical kernel is 0.1775.
+
+The test error rate is 0.1259.
+
+# summary using caret
+
+```{r echo=FALSE}
+# linear boundary using caret
+set.seed(1)
+svml_fit <- train(purchase~.,
+                  data = jojo[jo_train,],
+                  method="svmLinear2",
+                  preProcess = c("center","scale"),
+                  tuneGrid = data.frame(cost=exp(seq(-2,5,len=50))),
+                  trControl = ctrl)
+
+ggplot(svml_fit,highlight = TRUE)
+
+pred_svml <- predict(svml_fit,newdata = jojo[-jo_train,])
+
+confusionMatrix(data = pred_svml,
+                reference = jojo$purchase[-jo_train])
+
+# radial kernel using caret
+svmr_grid <- expand.grid(C=exp(seq(-5,2,len=10)),
+                         sigma=exp(seq(-7,-2,len=5)))
+
+set.seed(1)
+svmr_fit <- train(purchase~.,jojo,
+                  subset = jo_train,
+                  method="svmRadial",
+                  preProcess=c("center","scale"),
+                  tuneGrid=svmr_grid,
+                  trControl=ctrl)
+
+ggplot(svmr_fit,highlight = TRUE)
+
+pred_svmr <- predict(svmr_fit,newdata = jojo[-jo_train,])
+
+confusionMatrix(data=pred_svmr,
+                reference = jojo$purchase[-jo_train])
+
+
+
+res <- resamples(list(svml=svml_fit,svmr=svmr_fit))
+
+summary(res)
+
+bwplot(res)
 
 
 ```
 
-
-
-```{r }
-
-
-
-
-
-```
-
-
-
-```{r }
-
-```
+The linear boudary has higher accuracy and Kappa statistics value.
 
 
